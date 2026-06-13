@@ -29,25 +29,39 @@ simulate_stream.py                    power_grid_pipeline.py
 
 16 smart meters are spread across 4 zones (2 residential, 2 industrial). The simulator injects anomalous residential spikes in a configurable fraction of batches so the alert condition fires visibly.
 
-## Prerequisites
+## Quick Start (Docker)
+
+No setup needed. Just Docker.
+
+```bash
+docker compose up --build
+```
+
+This builds a container with Java 17 and PySpark, starts the pipeline, feeds it simulated data, and prints alerts to the console. Takes about 2 minutes end to end.
+
+## Manual Setup
+
+If you prefer running without Docker:
+
+### Prerequisites
 
 - Python 3.8+
-- Java 11 (required by PySpark)
-- PySpark 3.4+
+- Java 11 or 17 (required by PySpark)
+- PySpark 3.5+
 
 On Ubuntu/Debian, install Java with:
 ```bash
-sudo apt-get install -y openjdk-11-jdk-headless
+sudo apt-get install -y openjdk-17-jdk-headless
 ```
 
-## Setup
+### Install dependencies
 
 ```bash
 cd realtime-stream-processing
 pip install -r requirements.txt
 ```
 
-## Running
+### Run
 
 Open two terminals in the project root.
 
@@ -125,12 +139,22 @@ For grid monitoring, where operators need to respond before equipment is damaged
 realtime-stream-processing/
   README.md
   requirements.txt
+  Dockerfile
+  docker-compose.yml
+  run.sh                        Entrypoint for Docker (runs both scripts)
   data/
     zone_mapping.csv            Static mapping: meter_id -> zone_id, zone_type
   simulate_stream.py            Generates streaming CSV batches
   power_grid_pipeline.py        Spark Structured Streaming pipeline
+  screenshots/
+    alert1.png
+    alert2.png
 ```
 
-## Screenshot
+## Screenshots
 
-> Add a screenshot of the alert output firing in the Spark console here.
+Pipeline (left) detecting grid anomalies as the simulator (right) feeds data:
+
+![Alert output 1](screenshots/alert1.png)
+
+![Alert output 2](screenshots/alert2.png)
