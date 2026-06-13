@@ -150,6 +150,7 @@ realtime-stream-processing/
   screenshots/
     alert1.png
     alert2.png
+    alert3.png
 ```
 
 ## Screenshots
@@ -159,3 +160,5 @@ Pipeline (left) detecting grid anomalies as the simulator (right) feeds data:
 ![Alert output 1](screenshots/alert1.png)
 
 ![Alert output 2](screenshots/alert2.png)
+
+![Alert output 3](screenshots/alert3.png)
