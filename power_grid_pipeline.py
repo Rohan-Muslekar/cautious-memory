@@ -1,5 +1,6 @@
 import os
 import sys
+import shutil
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
     window, avg, col, lit, count, max as spark_max, round as spark_round
@@ -22,6 +23,7 @@ def create_spark_session():
         SparkSession.builder
         .appName('SmartPowerGridMonitoring')
         .config('spark.sql.shuffle.partitions', '4')
+        .config('spark.sql.files.ignoreMissingFiles', 'true')
         .getOrCreate()
     )
 
@@ -118,7 +120,10 @@ def main():
         print('Run this script from the project root directory.')
         sys.exit(1)
 
-    os.makedirs(STREAM_DIRECTORY, exist_ok=True)
+    # wipe old batches so the pipeline starts clean
+    if os.path.exists(STREAM_DIRECTORY):
+        shutil.rmtree(STREAM_DIRECTORY)
+    os.makedirs(STREAM_DIRECTORY)
 
     spark = create_spark_session()
     spark.sparkContext.setLogLevel('ERROR')
