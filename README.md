@@ -27,7 +27,7 @@ simulate_stream.py                    power_grid_pipeline.py
                                         GRID_ANOMALY alert to console
 ```
 
-16 smart meters are spread across 4 zones (2 residential, 2 industrial). The simulator injects anomalous residential spikes in a configurable fraction of batches so the alert condition fires visibly.
+The pipeline processes a 20,000-row sample from the UCI Household Power Consumption dataset. Each reading is assigned to one of 16 smart meters spread across 4 zones (2 residential, 2 industrial). Industrial meter readings are scaled up by 3.5x to reflect higher baseline consumption. The simulator chunks this sample into batches and injects anomalous residential spikes in a configurable fraction of batches so the alert condition fires visibly.
 
 ## Quick Start (Docker)
 
@@ -81,14 +81,14 @@ The pipeline prints an alert whenever a residential zone's average consumption e
 
 | Flag | Default | Description |
 |------|---------|-------------|
-| `--batches` | 30 | Number of CSV batches to write |
-| `--events-per-batch` | 100 | Meter readings per batch |
+| `--max-batches` | 50 | Stop after this many batches (0 = use all data) |
+| `--rows-per-batch` | 200 | Readings per batch file |
 | `--interval` | 3.0 | Seconds between batches |
 | `--anomaly-ratio` | 0.3 | Fraction of batches with residential spikes |
 
-Example with more data:
+Example streaming all 20,000 rows:
 ```bash
-python simulate_stream.py --batches 100 --events-per-batch 200 --interval 2
+python simulate_stream.py --max-batches 0 --rows-per-batch 200 --interval 2
 ```
 
 ## Sample Alert Output
@@ -144,7 +144,8 @@ realtime-stream-processing/
   run.sh                        Entrypoint for Docker (runs both scripts)
   data/
     zone_mapping.csv            Static mapping: meter_id -> zone_id, zone_type
-  simulate_stream.py            Generates streaming CSV batches
+    uci_power_sample.csv        20k-row sample from UCI dataset
+  simulate_stream.py            Chunks UCI sample into streaming batches
   power_grid_pipeline.py        Spark Structured Streaming pipeline
   screenshots/
     alert1.png

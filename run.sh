@@ -8,7 +8,7 @@ PIPELINE_PID=$!
 sleep 12
 
 echo "Starting simulator..."
-python3 simulate_stream.py --batches 15 --events-per-batch 100 --interval 4 --anomaly-ratio 0.4
+python3 simulate_stream.py --max-batches 20 --rows-per-batch 200 --interval 4 --anomaly-ratio 0.4
 
 sleep 15
 
