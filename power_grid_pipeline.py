@@ -43,7 +43,7 @@ def build_pipeline(spark):
         .csv(STREAM_DIRECTORY)
     )
 
-    # enrich each reading with its zone metadata before aggregation
+    # attach zone info to each reading
     enriched_stream = power_stream.join(zone_mapping, on='meter_id', how='inner')
 
     windowed_consumption_per_zone = (
@@ -65,8 +65,7 @@ def build_pipeline(spark):
 
 
 def detect_grid_anomalies(micro_batch_dataframe, batch_id):
-    """Called once per micro-batch. Compares residential zone consumption
-    against the industrial average and prints alerts."""
+    # flags residential zones drawing more than industrial avg
     if micro_batch_dataframe.isEmpty():
         return
 

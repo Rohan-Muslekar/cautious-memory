@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 STREAM_DIRECTORY = '/tmp/power_stream'
 
-# baseline power draw (kW) per meter; M001-M008 are residential, M009-M016 industrial
+# M001-M008 residential, M009-M016 industrial
 METER_BASELINES_KW = {
     'M001': 1.2, 'M002': 0.8, 'M003': 1.5, 'M004': 1.0,
     'M005': 0.9, 'M006': 1.3, 'M007': 1.1, 'M008': 0.7,
@@ -35,7 +35,7 @@ def write_power_reading_batch(events_per_batch=100, spike_residential=False):
         baseline_kw = METER_BASELINES_KW[meter_id]
 
         if spike_residential and meter_id in RESIDENTIAL_METER_IDS:
-            # push residential readings well above typical industrial range
+            # spike above industrial levels
             active_power_kw = round(baseline_kw + random.uniform(5.0, 8.0), 3)
         else:
             active_power_kw = round(baseline_kw + random.uniform(-0.3, 0.5), 3)
