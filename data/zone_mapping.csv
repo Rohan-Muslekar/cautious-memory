@@ -1,0 +1,17 @@
+meter_id,zone_id,zone_type
+M001,zone_A,residential
+M002,zone_A,residential
+M003,zone_A,residential
+M004,zone_A,residential
+M005,zone_B,residential
+M006,zone_B,residential
+M007,zone_B,residential
+M008,zone_B,residential
+M009,zone_C,industrial
+M010,zone_C,industrial
+M011,zone_C,industrial
+M012,zone_C,industrial
+M013,zone_D,industrial
+M014,zone_D,industrial
+M015,zone_D,industrial
+M016,zone_D,industrial

@@ -1,0 +1,136 @@
+# Smart Power Grid Anomaly Detection
+
+Real-time streaming pipeline that detects residential zones whose power consumption unexpectedly exceeds industrial levels. Built with PySpark Structured Streaming.
+
+**Course:** ENGR 5785G - Real-time Data Analytics for IoT  
+**Scenario:** D - Smart Power Grid  
+**Dataset:** [UCI Household Power Consumption](https://archive.ics.uci.edu/dataset/235/individual+household+electric+power+consumption)
+
+## Architecture
+
+```
+simulate_stream.py                    power_grid_pipeline.py
+       |                                       |
+  Write CSV batches                     readStream (watched dir)
+       |                                       |
+       v                                Join with zone_mapping.csv  (stream-static)
+  /tmp/power_stream/  ------>                  |
+                                        withWatermark (10 min)
+                                               |
+                                        Sliding window (5 min / 1 min)
+                                        groupBy(zone_id, zone_type)
+                                               |
+                                        avg(global_active_power)
+                                               |
+                                        foreachBatch: residential vs industrial
+                                               |
+                                        GRID_ANOMALY alert to console
+```
+
+16 smart meters are spread across 4 zones (2 residential, 2 industrial). The simulator injects anomalous residential spikes in a configurable fraction of batches so the alert condition fires visibly.
+
+## Prerequisites
+
+- Python 3.8+
+- Java 11 (required by PySpark)
+- PySpark 3.4+
+
+On Ubuntu/Debian, install Java with:
+```bash
+sudo apt-get install -y openjdk-11-jdk-headless
+```
+
+## Setup
+
+```bash
+cd realtime-stream-processing
+pip install -r requirements.txt
+```
+
+## Running
+
+Open two terminals in the project root.
+
+**Terminal 1 - start the pipeline:**
+```bash
+python power_grid_pipeline.py
+```
+
+**Terminal 2 - start the simulator:**
+```bash
+python simulate_stream.py
+```
+
+The pipeline prints an alert whenever a residential zone's average consumption exceeds the industrial average within the same sliding window.
+
+### Simulator options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--batches` | 30 | Number of CSV batches to write |
+| `--events-per-batch` | 100 | Meter readings per batch |
+| `--interval` | 3.0 | Seconds between batches |
+| `--anomaly-ratio` | 0.3 | Fraction of batches with residential spikes |
+
+Example with more data:
+```bash
+python simulate_stream.py --batches 100 --events-per-batch 200 --interval 2
+```
+
+## Sample Alert Output
+
+```
+==============================================================
+  GRID ANOMALY ALERT  |  Batch 5
+  Industrial baseline avg: 5.412 kW
+  Residential zones above threshold: 2
+==============================================================
++-------+-------------------+-------------------+------------------+-----------------+-------------+------------+
+|zone_id|window_start       |window_end         |avg_consumption_kw|industrial_avg_kw|reading_count|status      |
++-------+-------------------+-------------------+------------------+-----------------+-------------+------------+
+|zone_A |2026-06-14 12:00:00|2026-06-14 12:05:00|7.234             |5.412            |14           |GRID_ANOMALY|
+|zone_B |2026-06-14 12:00:00|2026-06-14 12:05:00|6.891             |5.412            |11           |GRID_ANOMALY|
++-------+-------------------+-------------------+------------------+-----------------+-------------+------------+
+```
+
+## Written Explanation
+
+### Why a sliding window?
+
+A sliding window (5 minutes wide, advancing every 1 minute) was chosen over a tumbling window for two reasons:
+
+1. **Earlier detection.** A tumbling window reports once every 5 minutes. If a residential zone starts spiking at minute 2, the alert does not fire until minute 5. The sliding window recomputes every minute, so the spike shows up in the very next update.
+
+2. **Smoother trend visibility.** Each reading contributes to up to 5 overlapping windows. This dilutes short transient spikes across multiple windows while still catching sustained anomalies. A single outlier reading cannot dominate a window the way it might in a small tumbling window.
+
+For grid monitoring, where operators need to respond before equipment is damaged, the 1-minute update cadence is much more practical than waiting for a tumbling window to close.
+
+### Where the pipeline requires state
+
+**Stateful operations:**
+
+- **Sliding window aggregation** (`groupBy` + `window` + `avg`): Spark maintains partial sums and counts for every active `(zone_id, window_start, window_end)` combination in its state store. With a 5-minute window sliding every minute, each incoming event falls into up to 5 overlapping windows, all of which must be tracked simultaneously. This is the primary source of state in the pipeline.
+
+- **Watermark tracking:** Spark tracks the maximum observed `event_time` across all partitions to decide when old window state can be safely discarded. The 10-minute watermark means Spark keeps window state for 10 minutes past the window's close before dropping it, which bounds memory usage on long-running streams.
+
+**Stateless operations:**
+
+- **Stream-static join:** Enriching each meter reading with zone metadata from `zone_mapping.csv` requires no memory of previous events. The zone mapping is broadcast once and applied row by row.
+
+- **Alert filter** (inside `foreachBatch`): Comparing residential averages against the industrial baseline operates on the current micro-batch snapshot with no history needed.
+
+## Project Structure
+
+```
+realtime-stream-processing/
+  README.md
+  requirements.txt
+  data/
+    zone_mapping.csv            Static mapping: meter_id -> zone_id, zone_type
+  simulate_stream.py            Generates streaming CSV batches
+  power_grid_pipeline.py        Spark Structured Streaming pipeline
+```
+
+## Screenshot
+
+> Add a screenshot of the alert output firing in the Spark console here.
